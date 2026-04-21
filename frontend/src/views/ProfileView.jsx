@@ -1,13 +1,13 @@
 import { useRef, useState } from 'react';
 import { uploadGameImage } from '../lib/uploadImage';
+import { DEFAULT_SITE_CONFIG } from '../hooks/useSiteConfig';
 import s from './shared.module.css';
 
 const GRADS=['linear-gradient(135deg,#0e7c66,#1d9f7d 68%,#6dcdb7)','linear-gradient(135deg,#7a4dd1,#a06cf0 60%,#d0b4ff)','linear-gradient(135deg,#cc6d11,#ef9333 65%,#f6c173)','linear-gradient(135deg,#1f6bde,#3f90ff 62%,#98c7ff)','linear-gradient(135deg,#8d2db6,#ba52d8 62%,#ebb2ff)','linear-gradient(135deg,#3d8b2d,#5aa540 60%,#a9de7d)'];
-const SPORTS=['Soccer','Basketball','Volleyball','Tennis','Hockey','Pickleball','Ultimate','Badminton'];
 
 function AuthPanel({ auth }) {
   const { signIn, signInEmail, signUpEmail } = auth;
-  const [mode, setMode] = useState('signin'); // signin | signup
+  const [mode, setMode] = useState('signin');
   const [email, setEmail] = useState('');
   const [pw,    setPw]    = useState('');
   const [name,  setName]  = useState('');
@@ -36,7 +36,7 @@ function AuthPanel({ auth }) {
     <div className={s.authPanel} data-testid="auth-panel">
       <div className={s.authHeader}>
         <strong>Sign in to post games</strong>
-        <span>Games are tied to your account. Takes 5 seconds.</span>
+        <span>Games tie to your account. Takes 5 seconds.</span>
       </div>
 
       <button type="button" className={s.googleBtn} onClick={signIn} data-testid="google-signin-btn">
@@ -48,7 +48,7 @@ function AuthPanel({ auth }) {
 
       <div className={s.authTabs}>
         <button type="button" className={`${s.authTab}${mode==='signin'?' '+s.authTabActive:''}`} onClick={()=>setMode('signin')} data-testid="auth-tab-signin">Sign in</button>
-        <button type="button" className={`${s.authTab}${mode==='signup'?' '+s.authTabActive:''}`} onClick={()=>setMode('signup')} data-testid="auth-tab-signup">Create account</button>
+        <button type="button" className={`${s.authTab}${mode==='signup'?' '+s.authTabActive:''}`} onClick={()=>setMode('signup')} data-testid="auth-tab-signup">Create</button>
       </div>
 
       <form onSubmit={submit} className={s.formGrid}>
@@ -58,14 +58,8 @@ function AuthPanel({ auth }) {
             <input className={s.formInput} value={name} onChange={e=>setName(e.target.value)} placeholder="How you'll appear to players" data-testid="auth-name-input"/>
           </div>
         )}
-        <div className={s.formGroup}>
-          <label className={s.formLabel}>Email</label>
-          <input className={s.formInput} type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com" required autoComplete="email" data-testid="auth-email-input"/>
-        </div>
-        <div className={s.formGroup}>
-          <label className={s.formLabel}>Password</label>
-          <input className={s.formInput} type="password" value={pw} onChange={e=>setPw(e.target.value)} placeholder="At least 6 characters" required autoComplete={mode==='signup'?'new-password':'current-password'} minLength={6} data-testid="auth-password-input"/>
-        </div>
+        <div className={s.formGroup}><label className={s.formLabel}>Email</label><input className={s.formInput} type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com" required autoComplete="email" data-testid="auth-email-input"/></div>
+        <div className={s.formGroup}><label className={s.formLabel}>Password</label><input className={s.formInput} type="password" value={pw} onChange={e=>setPw(e.target.value)} placeholder="At least 6 characters" required autoComplete={mode==='signup'?'new-password':'current-password'} minLength={6} data-testid="auth-password-input"/></div>
         {err && <div className={s.authError} data-testid="auth-error">{err}</div>}
         <button type="submit" className={s.submitBtn} disabled={busy} data-testid="auth-submit-btn">
           {busy ? 'Please wait…' : (mode==='signup' ? 'Create account' : 'Sign in')}
@@ -75,8 +69,9 @@ function AuthPanel({ auth }) {
   );
 }
 
-export default function ProfileView({ auth, onPostGame, postedGames, confirmed }) {
+export default function ProfileView({ auth, admin, onPostGame, postedGames, confirmed, siteConfig }) {
   const { user, logOut } = auth;
+  const SPORTS = (siteConfig?.sports || DEFAULT_SITE_CONFIG.sports);
   const [tab, setTab]       = useState('post');
   const [ok,  setOk]        = useState(false);
   const [favs,setFavs]      = useState(new Set(['Soccer','Basketball']));
@@ -130,7 +125,7 @@ export default function ProfileView({ auth, onPostGame, postedGames, confirmed }
         note:f.note||'Come ready to play and have fun.',
         organizerDescription:f.note||'Come ready to play and have fun.',
         bring:f.bring||'Yourself', vibe:`${max-1} spots left`,
-        gradient:GRADS[postedGames.length%GRADS.length], isOwn:true, hostUid:user.uid,
+        gradient:GRADS[postedGames.length%GRADS.length], hostUid:user.uid,
         imageUrl, imagePath,
       });
       setOk(true);
@@ -148,8 +143,8 @@ export default function ProfileView({ auth, onPostGame, postedGames, confirmed }
     <section className={s.view}>
       <div className={s.topbar}>
         <div className={s.brand}>
-          <div className={s.logo}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>
-          <div><strong>Profile</strong><span>Your games and preferences.</span></div>
+          <div className={s.logo}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>
+          <div><strong>Profile</strong><span>Your games · prefs</span></div>
         </div>
         {user && <button className={s.ghostBtn} onClick={logOut} data-testid="signout-btn">Sign out</button>}
       </div>
@@ -158,6 +153,7 @@ export default function ProfileView({ auth, onPostGame, postedGames, confirmed }
         <div className={s.profileAvatar}>{initials}</div>
         <div className={s.profileName}>{displayName}</div>
         <div className={s.profileSub}>{user?user.email:'Sign in to post games & sync across devices'}</div>
+        {admin?.isAdmin && <div className={s.adminChip}>⬢ Admin</div>}
         <div className={s.profileStats}>
           <div className={s.profileStat}><strong>{confirmed.length}</strong><span>Joined</span></div>
           <div className={s.profileStat}><strong>{postedGames.length}</strong><span>Posted</span></div>
@@ -170,16 +166,15 @@ export default function ProfileView({ auth, onPostGame, postedGames, confirmed }
       {user && (
       <div className={s.card}>
         <div className={s.tabRow}>
-          {[['post','Post a game'],['mypost','My posted'],['settings','Preferences']].map(([id,label])=>(
+          {[['post','Post'],['mypost','Mine'],['settings','Prefs']].map(([id,label])=>(
             <button key={id} className={`${s.tabBtn}${tab===id?' '+s.tabActive:''}`} onClick={()=>setTab(id)} data-testid={`tab-${id}`}>{label}</button>
           ))}
         </div>
 
         {tab==='post'&&(
           <form onSubmit={submit} className={s.formGrid} data-testid="post-game-form">
-            {ok&&<div className={s.successToast} data-testid="post-success">Game posted! Live in the swipe deck now.</div>}
+            {ok&&<div className={s.successToast} data-testid="post-success">Game posted · live in deck</div>}
 
-            {/* Image upload */}
             <div className={s.formGroup}>
               <label className={s.formLabel}>Cover image</label>
               {imgPreview ? (
@@ -192,7 +187,7 @@ export default function ProfileView({ auth, onPostGame, postedGames, confirmed }
                 <button type="button" className={s.dropzone} onClick={()=>fileRef.current?.click()} data-testid="image-upload-btn">
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>
                   <strong>Add a photo</strong>
-                  <span>JPG, PNG, or WebP · auto-compressed · optional</span>
+                  <span>jpg · png · webp · auto-compressed · optional</span>
                 </button>
               )}
               <input ref={fileRef} type="file" accept="image/*" onChange={onPickFile} style={{display:'none'}} data-testid="image-file-input"/>
@@ -200,10 +195,10 @@ export default function ProfileView({ auth, onPostGame, postedGames, confirmed }
             </div>
 
             <div className={s.formRow}>
-              <div className={s.formGroup}><label className={s.formLabel}>Sport *</label><select className={s.formInput} value={f.sport} onChange={e=>set('sport',e.target.value)} required data-testid="post-sport-select"><option value="">Select…</option>{[...SPORTS,'Baseball','Rugby','Other'].map(x=><option key={x}>{x}</option>)}</select></div>
+              <div className={s.formGroup}><label className={s.formLabel}>Sport *</label><select className={s.formInput} value={f.sport} onChange={e=>set('sport',e.target.value)} required data-testid="post-sport-select"><option value="">Select…</option>{SPORTS.map(x=><option key={x}>{x}</option>)}</select></div>
               <div className={s.formGroup}><label className={s.formLabel}>Format</label><input className={s.formInput} value={f.format} onChange={e=>set('format',e.target.value)} placeholder="e.g. 5v5" data-testid="post-format-input"/></div>
             </div>
-            <div className={s.formGroup}><label className={s.formLabel}>Location / venue *</label><input className={s.formInput} value={f.location} onChange={e=>set('location',e.target.value)} placeholder="e.g. Gibbons Park, London ON" required data-testid="post-location-input"/></div>
+            <div className={s.formGroup}><label className={s.formLabel}>Location / venue *</label><input className={s.formInput} value={f.location} onChange={e=>set('location',e.target.value)} placeholder="e.g. Gibbons Park" required data-testid="post-location-input"/></div>
             <div className={s.formRow}>
               <div className={s.formGroup}><label className={s.formLabel}>Date *</label><input className={s.formInput} type="date" value={f.date} onChange={e=>set('date',e.target.value)} required data-testid="post-date-input"/></div>
               <div className={s.formGroup}><label className={s.formLabel}>Time *</label><input className={s.formInput} type="time" value={f.time} onChange={e=>set('time',e.target.value)} required data-testid="post-time-input"/></div>
@@ -213,10 +208,10 @@ export default function ProfileView({ auth, onPostGame, postedGames, confirmed }
               <div className={s.formGroup}><label className={s.formLabel}>Max players</label><input className={s.formInput} type="number" min="2" max="30" value={f.maxPlayers} onChange={e=>set('maxPlayers',e.target.value)} data-testid="post-maxplayers-input"/></div>
             </div>
             <div className={s.formGroup}><label className={s.formLabel}>Competition level *</label><select className={s.formInput} value={f.level} onChange={e=>set('level',e.target.value)} required data-testid="post-level-select"><option value="">Select…</option>{['Casual','Beginner-Friendly','Intermediate','Casual-Competitive','Competitive'].map(x=><option key={x}>{x}</option>)}</select></div>
-            <div className={s.formGroup}><label className={s.formLabel}>What to bring</label><input className={s.formInput} value={f.bring} onChange={e=>set('bring',e.target.value)} placeholder="e.g. Water, cleats, dark shirt" data-testid="post-bring-input"/></div>
+            <div className={s.formGroup}><label className={s.formLabel}>What to bring</label><input className={s.formInput} value={f.bring} onChange={e=>set('bring',e.target.value)} placeholder="e.g. water, cleats, dark shirt" data-testid="post-bring-input"/></div>
             <div className={s.formGroup}><label className={s.formLabel}>Organizer note</label><textarea className={s.formTextarea} value={f.note} onChange={e=>set('note',e.target.value)} placeholder="Tell players what to expect — vibe, logistics, skill level…" data-testid="post-note-input"/></div>
             <button type="submit" className={s.submitBtn} disabled={busy} data-testid="post-submit-btn">
-              {busy ? (imgFile ? `Uploading… ${Math.round(upPct*100)}%` : 'Posting…') : 'Post game to deck'}
+              {busy ? (imgFile ? `Uploading… ${Math.round(upPct*100)}%` : 'Posting…') : 'Post game'}
             </button>
           </form>
         )}
@@ -236,7 +231,7 @@ export default function ProfileView({ auth, onPostGame, postedGames, confirmed }
 
         {tab==='settings'&&(
           <div className={s.stack}>
-            <div className={s.formGroup}><label className={s.formLabel}>Favourite sports</label><div className={s.chipRow}>{SPORTS.map(sp=><button type="button" key={sp} className={`${s.chip}${favs.has(sp)?' '+s.active:''}`} onClick={()=>toggleFav(sp)}>{sp}</button>)}</div></div>
+            <div className={s.formGroup}><label className={s.formLabel}>Favourite sports</label><div className={s.chipRow}>{SPORTS.slice(0,8).map(sp=><button type="button" key={sp} className={`${s.chip}${favs.has(sp)?' '+s.active:''}`} onClick={()=>toggleFav(sp)}>{sp}</button>)}</div></div>
             <div className={s.formGroup}><label className={s.formLabel}>Notifications</label><select className={s.formInput}><option>Notify me when a game is almost full</option><option>Notify me for all new games nearby</option><option>Only notify me for confirmed spots</option></select></div>
           </div>
         )}

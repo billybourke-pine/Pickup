@@ -7,14 +7,43 @@ import {
   updateProfile,
   signOut,
 } from 'firebase/auth';
-import { auth, googleProvider } from '../lib/firebase';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { auth, googleProvider, db } from '../lib/firebase';
+
+// Ensures a users/{uid} doc exists on every sign-in. Uses merge so admin flags
+// set by another admin stay intact. Never writes isAdmin or banned here.
+async function ensureUserDoc(u) {
+  if (!u) return;
+  try {
+    await setDoc(
+      doc(db, 'users', u.uid),
+      {
+        uid: u.uid,
+        email: u.email || null,
+        displayName: u.displayName || (u.email ? u.email.split('@')[0] : 'Guest'),
+        photoURL: u.photoURL || null,
+        lastSeenAt: serverTimestamp(),
+        // createdAt only set on first write; merge keeps existing
+        createdAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+  } catch (e) {
+    // If rules reject or network flaky, don't crash the app
+    console.warn('ensureUserDoc failed:', e?.message || e);
+  }
+}
 
 export function useAuth() {
   const [user, setUser]       = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, u => { setUser(u); setLoading(false); });
+    const unsub = onAuthStateChanged(auth, async u => {
+      setUser(u);
+      setLoading(false);
+      if (u) ensureUserDoc(u);
+    });
     return unsub;
   }, []);
 

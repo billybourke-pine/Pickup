@@ -4,7 +4,7 @@ import s from './SwipeCard.module.css';
 const spots  = g => Math.max(g.playersNeeded - g.playersIn, 0);
 const roster = g => `${g.playersIn}/${g.playersNeeded} · ${spots(g)} ${spots(g)===1?'spot':'spots'} left`;
 
-export default function SwipeCard({ game, depth, isTop, onPass, onInterested, onConfirm }) {
+export default function SwipeCard({ game, depth, isTop, onPass, onInterested, onConfirm, isAdmin, onPin, onDelete }) {
   const ref = useRef(null);
   const sx = useRef(0), sy = useRef(0);
   const [drag, setDrag] = useState(false);
@@ -36,12 +36,9 @@ export default function SwipeCard({ game, depth, isTop, onPass, onInterested, on
 
   const depthStyle = depth===2?{transform:'translateY(16px) scale(0.97)',opacity:0.86}:depth===3?{transform:'translateY(30px) scale(0.94)',opacity:0.7}:{};
 
-  // Banner: image if provided, otherwise gradient fallback. Overlay ensures text legibility.
   const bannerStyle = game.imageUrl
-    ? { backgroundImage:
-        `linear-gradient(180deg, rgba(0,0,0,0.12) 0%, rgba(0,0,0,0.15) 45%, rgba(0,0,0,0.55) 100%), url("${game.imageUrl}")`,
-        backgroundSize:'cover', backgroundPosition:'center' }
-    : { background: game.gradient };
+    ? { backgroundImage:`url("${game.imageUrl}")`, backgroundSize:'cover', backgroundPosition:'center' }
+    : { background: game.gradient || 'linear-gradient(135deg,#1a1a1a,#2a2a2a)' };
 
   return (
     <article ref={ref} className={s.card} style={depthStyle} data-testid={`swipe-card-${game.id}`}
@@ -53,7 +50,10 @@ export default function SwipeCard({ game, depth, isTop, onPass, onInterested, on
       <div className={s.banner} style={bannerStyle} data-testid="card-banner">
         <div className={s.bannerTop}>
           <span className={s.tag}>{game.sport} · {game.format}</span>
-          <span className={s.tag}>{spots(game)} spots left</span>
+          <div style={{display:'flex',gap:'.4rem',flexWrap:'wrap',justifyContent:'flex-end'}}>
+            {game.pinned && <span className={`${s.tag} ${s.pinBadge}`}>★ Featured</span>}
+            <span className={s.tag}>{spots(game)} spots left</span>
+          </div>
         </div>
         <div><h2 className={s.title}>{game.where}</h2><p className={s.when}>{game.when}</p></div>
       </div>
@@ -78,6 +78,16 @@ export default function SwipeCard({ game, depth, isTop, onPass, onInterested, on
             <div><strong>{game.hostName||game.host}</strong><span>{game.hostMeta}</span></div>
           </div>
         </div>
+        {isAdmin && (
+          <div className={s.adminRow} data-testid="admin-card-controls">
+            <button type="button" className={`${s.adminBtn}${game.pinned?' '+s.adminBtnActive:''}`} onClick={e=>{e.stopPropagation();onPin?.(game);}} data-testid="admin-pin-btn">
+              {game.pinned ? '★ Unpin' : '☆ Pin'}
+            </button>
+            <button type="button" className={`${s.adminBtn} ${s.adminBtnDanger}`} onClick={e=>{e.stopPropagation();onDelete?.(game);}} data-testid="admin-delete-btn">
+              Delete
+            </button>
+          </div>
+        )}
       </div>
     </article>
   );
