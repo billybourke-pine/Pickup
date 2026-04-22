@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import { useGames }  from './hooks/useGames';
 import { useAuth }   from './hooks/useAuth';
 import { useAdmin }  from './hooks/useAdmin';
@@ -134,6 +135,7 @@ export default function App() {
       </nav>
 
       <div className={`${s.toast}${toast?' '+s.toastShow:''}`} data-testid="toast-message">{toast}</div>
+      <Analytics />
     </div>
   );
 }
