@@ -1,5 +1,4 @@
-import { useRef, useState } from 'react';
-import { uploadGameImage } from '../lib/uploadImage';
+import { useState } from 'react';
 import { DEFAULT_SITE_CONFIG } from '../hooks/useSiteConfig';
 import s from './shared.module.css';
 
@@ -72,48 +71,24 @@ function AuthPanel({ auth }) {
 export default function ProfileView({ auth, admin, onPostGame, postedGames, confirmed, siteConfig }) {
   const { user, logOut } = auth;
   const SPORTS = (siteConfig?.sports || DEFAULT_SITE_CONFIG.sports);
-  const [tab, setTab]       = useState('post');
-  const [ok,  setOk]        = useState(false);
-  const [favs,setFavs]      = useState(new Set(['Soccer','Basketball']));
-  const [f,   setF]         = useState({sport:'',format:'',location:'',date:'',time:'',duration:'',maxPlayers:'12',level:'',bring:'',note:''});
-  const [imgFile,    setImgFile]    = useState(null);
-  const [imgPreview, setImgPreview] = useState('');
-  const [upPct,      setUpPct]      = useState(0);
-  const [busy,       setBusy]       = useState(false);
-  const [uploadErr,  setUploadErr]  = useState('');
-  const fileRef = useRef(null);
+  const [tab, setTab] = useState('post');
+  const [ok,  setOk]  = useState(false);
+  const [favs,setFavs] = useState(new Set(['Soccer','Basketball']));
+  const [f,   setF]   = useState({sport:'',format:'',location:'',date:'',time:'',duration:'',maxPlayers:'12',level:'',bring:'',note:''});
+  const [busy,      setBusy]      = useState(false);
+  const [submitErr, setSubmitErr] = useState('');
 
   const set = (k,v) => setF(p=>({...p,[k]:v}));
   const toggleFav = sp => setFavs(p=>{ const n=new Set(p); n.has(sp)?n.delete(sp):n.add(sp); return n; });
   const displayName = user?.displayName || user?.email?.split('@')[0] || 'Guest';
   const initials    = displayName.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
 
-  const onPickFile = e => {
-    const file = e.target.files?.[0];
-    setUploadErr('');
-    if (!file) { setImgFile(null); setImgPreview(''); return; }
-    if (!file.type.startsWith('image/')) { setUploadErr('Please pick an image file.'); return; }
-    if (file.size > 12 * 1024 * 1024)    { setUploadErr('Image is over 12 MB. Please pick a smaller one.'); return; }
-    setImgFile(file);
-    setImgPreview(URL.createObjectURL(file));
-  };
-  const clearImage = () => {
-    setImgFile(null); setImgPreview(''); setUpPct(0); setUploadErr('');
-    if (fileRef.current) fileRef.current.value = '';
-  };
-
   const submit = async e => {
     e.preventDefault();
-    if (!user) { setUploadErr('Please sign in before posting.'); return; }
+    if (!user) { setSubmitErr('Please sign in before posting.'); return; }
     if(!f.sport||!f.location||!f.date||!f.time||!f.level) return;
-    setBusy(true); setUploadErr('');
+    setBusy(true); setSubmitErr('');
     try {
-      let imageUrl = '', imagePath = '';
-      if (imgFile) {
-        const up = await uploadGameImage(imgFile, user.uid, setUpPct);
-        imageUrl  = up.url;
-        imagePath = up.path;
-      }
       const d=new Date(`${f.date}T${f.time}`);
       const max=parseInt(f.maxPlayers)||12;
       await onPostGame({
@@ -126,16 +101,15 @@ export default function ProfileView({ auth, admin, onPostGame, postedGames, conf
         organizerDescription:f.note||'Come ready to play and have fun.',
         bring:f.bring||'Yourself', vibe:`${max-1} spots left`,
         gradient:GRADS[postedGames.length%GRADS.length], hostUid:user.uid,
-        imageUrl, imagePath,
+        imageUrl:'', imagePath:'',
       });
       setOk(true);
       setF({sport:'',format:'',location:'',date:'',time:'',duration:'',maxPlayers:'12',level:'',bring:'',note:''});
-      clearImage();
       setTimeout(()=>setOk(false),3000);
     } catch (e2) {
-      setUploadErr(e2?.message || 'Could not post game. Please try again.');
+      setSubmitErr(e2?.message || 'Could not post game. Please try again.');
     } finally {
-      setBusy(false); setUpPct(0);
+      setBusy(false);
     }
   };
 
@@ -174,25 +148,7 @@ export default function ProfileView({ auth, admin, onPostGame, postedGames, conf
         {tab==='post'&&(
           <form onSubmit={submit} className={s.formGrid} data-testid="post-game-form">
             {ok&&<div className={s.successToast} data-testid="post-success">Game posted · live in deck</div>}
-
-            <div className={s.formGroup}>
-              <label className={s.formLabel}>Cover image</label>
-              {imgPreview ? (
-                <div className={s.imagePreviewWrap}>
-                  <img src={imgPreview} alt="Game cover preview" className={s.imagePreview} data-testid="image-preview"/>
-                  <button type="button" className={s.imageRemove} onClick={clearImage} data-testid="image-remove-btn">Remove</button>
-                  {busy && upPct>0 && <div className={s.progressBar}><div className={s.progressFill} style={{width:`${Math.round(upPct*100)}%`}}/></div>}
-                </div>
-              ) : (
-                <button type="button" className={s.dropzone} onClick={()=>fileRef.current?.click()} data-testid="image-upload-btn">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>
-                  <strong>Add a photo</strong>
-                  <span>jpg · png · webp · auto-compressed · optional</span>
-                </button>
-              )}
-              <input ref={fileRef} type="file" accept="image/*" onChange={onPickFile} style={{display:'none'}} data-testid="image-file-input"/>
-              {uploadErr && <div className={s.authError} data-testid="upload-error">{uploadErr}</div>}
-            </div>
+            {submitErr && <div className={s.authError} data-testid="submit-error">{submitErr}</div>}
 
             <div className={s.formRow}>
               <div className={s.formGroup}><label className={s.formLabel}>Sport *</label><select className={s.formInput} value={f.sport} onChange={e=>set('sport',e.target.value)} required data-testid="post-sport-select"><option value="">Select…</option>{SPORTS.map(x=><option key={x}>{x}</option>)}</select></div>
@@ -211,7 +167,7 @@ export default function ProfileView({ auth, admin, onPostGame, postedGames, conf
             <div className={s.formGroup}><label className={s.formLabel}>What to bring</label><input className={s.formInput} value={f.bring} onChange={e=>set('bring',e.target.value)} placeholder="e.g. water, cleats, dark shirt" data-testid="post-bring-input"/></div>
             <div className={s.formGroup}><label className={s.formLabel}>Organizer note</label><textarea className={s.formTextarea} value={f.note} onChange={e=>set('note',e.target.value)} placeholder="Tell players what to expect — vibe, logistics, skill level…" data-testid="post-note-input"/></div>
             <button type="submit" className={s.submitBtn} disabled={busy} data-testid="post-submit-btn">
-              {busy ? (imgFile ? `Uploading… ${Math.round(upPct*100)}%` : 'Posting…') : 'Post game'}
+              {busy ? 'Posting…' : 'Post game'}
             </button>
           </form>
         )}
